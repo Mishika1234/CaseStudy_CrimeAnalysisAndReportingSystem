@@ -10,7 +10,7 @@ namespace CrimeAnalysisAndReportingSystem.service
 {
     public interface ICrimeAnalysisServiceImpl
     {
-        bool CreateIncident(Incident incident);
+        bool CreateIncident();
         bool UpdateIncidentStatus(int incidentId, string status);
         void GetIncidentsInDateRange();
         void SearchIncidents();

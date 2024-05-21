@@ -21,15 +21,15 @@ namespace CrimeAnalysisAndReportingSystem.service
             _crimeAnalysis = new CrimeAnalysisService();
         }
 
-        public bool CreateIncident(Incident incident)
+        
+        public bool CreateIncident()
         {
             try
             {
                 Console.WriteLine("Enter the details for the new incident:");
 
                 Console.Write("Case ID (press Enter if not applicable): ");
-                string caseIDInput = Console.ReadLine();
-                int? caseID = string.IsNullOrEmpty(caseIDInput) ? null : TryParseNullableInt(caseIDInput);
+                int? caseID = ReadNullableInt();
 
                 Console.Write("Incident Type: ");
                 string incidentType = Console.ReadLine();
@@ -42,8 +42,7 @@ namespace CrimeAnalysisAndReportingSystem.service
                 }
 
                 Console.Write("Location (press Enter for null): ");
-                string locationInput = Console.ReadLine();
-                string location = string.IsNullOrEmpty(locationInput) ? null : locationInput;
+                string location = Console.ReadLine();
 
                 Console.Write("Description: ");
                 string description = Console.ReadLine();
@@ -52,20 +51,24 @@ namespace CrimeAnalysisAndReportingSystem.service
                 string status = Console.ReadLine();
 
                 Console.Write("Victim ID (if any, press Enter if not applicable): ");
-                int? victimID = TryParseNullableInt(Console.ReadLine());
+                int? victimID = ReadNullableInt();
 
                 Console.Write("Suspect ID (if any, press Enter if not applicable): ");
-                int? suspectID = TryParseNullableInt(Console.ReadLine());
+                int? suspectID = ReadNullableInt();
 
                 Console.Write("Agency ID: ");
-                int agencyID = int.Parse(Console.ReadLine());
+                if (!int.TryParse(Console.ReadLine(), out int agencyID))
+                {
+                    Console.WriteLine("Invalid input for Agency ID. Please enter a valid integer.");
+                    return false;
+                }
 
                 Incident newIncident = new Incident
                 {
                     CaseID = caseID,
                     IncidentType = incidentType,
                     IncidentDate = incidentDate,
-                    Location = location,
+                    Location = string.IsNullOrEmpty(location) ? null : location,
                     Description = description,
                     Status = status,
                     VictimID = victimID,
@@ -75,15 +78,14 @@ namespace CrimeAnalysisAndReportingSystem.service
 
                 bool success = _crimeAnalysis.CreateIncident(newIncident);
 
-
                 if (success)
                 {
-                    Console.WriteLine("Incident added successfully.");
+                    Console.WriteLine("\n Incident added successfully.\n ");
                     return true;
                 }
                 else
                 {
-                    Console.WriteLine("Failed to create incident.");
+                    Console.WriteLine("\n Failed to create incident.\n ");
                     return false;
                 }
             }
@@ -91,6 +93,24 @@ namespace CrimeAnalysisAndReportingSystem.service
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 return false;
+            }
+        }
+
+        private int? ReadNullableInt()
+        {
+            string input = Console.ReadLine();
+            if (string.IsNullOrEmpty(input))
+            {
+                return null;
+            }
+            else if (!int.TryParse(input, out int parsedValue))
+            {
+                Console.WriteLine("Invalid input. Please enter a valid integer.");
+                return null;
+            }
+            else
+            {
+                return parsedValue;
             }
         }
 
@@ -106,9 +126,9 @@ namespace CrimeAnalysisAndReportingSystem.service
                 bool success = _crimeAnalysis.UpdateIncidentStatus(incidentId, newStatus);
 
                 if (success)
-                    Console.WriteLine("Incident status updated successfully.");
+                    Console.WriteLine("\n Incident status updated successfully.\n");
                 else
-                   Console.WriteLine("Failed to update incident status.");
+                   Console.WriteLine("\n Failed to update incident status.\n ");
 
                 return success;
             }
@@ -141,7 +161,7 @@ namespace CrimeAnalysisAndReportingSystem.service
                     Console.WriteLine("Incidents within the specified date range:");
                     foreach (var incident in incidents)
                     {
-                        Console.WriteLine($"Incident ID: {incident.IncidentID}, Case ID: {incident.CaseID}, Type: {incident.IncidentType}, Date: {incident.IncidentDate}, Location: {incident.Location}, Description: {incident.Description}, Status: {incident.Status}");
+                        Console.WriteLine($"\n Incident ID: {incident.IncidentID}, Case ID: {incident.CaseID}, Type: {incident.IncidentType}, Date: {incident.IncidentDate}, Location: {incident.Location}, Description: {incident.Description}, Status: {incident.Status} \n --------------------------------------------------------");
                     }
                 }
                 else
@@ -169,7 +189,7 @@ namespace CrimeAnalysisAndReportingSystem.service
                     Console.WriteLine($"Incidents of type '{incidentType}':");
                     foreach (var incident in incidents)
                     {
-                        Console.WriteLine($"Incident ID: {incident.IncidentID},Case ID: {incident.CaseID}, Type: {incident.IncidentType}, Date: {incident.IncidentDate}, Status: {incident.Status}");
+                        Console.WriteLine($"\n Incident ID: {incident.IncidentID},Case ID: {incident.CaseID}, Type: {incident.IncidentType}, Date: {incident.IncidentDate}, Status: {incident.Status}\n ---------------------------------------------------------");
                     }
                 }
            
@@ -184,81 +204,19 @@ namespace CrimeAnalysisAndReportingSystem.service
         {
             try
             {
-                Console.WriteLine("Enter details for the incident report:");
+                Console.WriteLine("Enter the Incident ID:");
+                int incidentId = Convert.ToInt32(Console.ReadLine());
 
                 
-                Console.Write("Incident Type: ");
-                string incidentType = Console.ReadLine();
-               
-               
-                Incident newIncident = new Incident
-                {
-                    IncidentType = incidentType,
-                   
-                };
+                string report = _crimeAnalysis.GenerateIncidentReport(incidentId);
 
-                
-                Report report = _crimeAnalysis.GenerateIncidentReport(newIncident);
-
-                
-                Console.WriteLine("Generated Incident Report:");
-                Console.WriteLine($"Report ID: {report.ReportId}");
-                Console.WriteLine($"Report Date: {report.ReportDate}");
-                Console.WriteLine($"Details: {report.ReportDetails}");
+                Console.WriteLine(report);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
             }
         }
-
-        public void CreateCase()
-        {
-            try
-            {
-                Console.WriteLine("Enter details for the new case:");
-
-                Console.Write("Case Description: ");
-                string caseDescription = Console.ReadLine();
-
-                // Create a new case object
-                Case newCase = new Case
-                {
-                    CaseDescription = caseDescription,
-                    Incidents = new List<Incident>() // Initialize the Incidents property
-                };
-
-                Console.WriteLine("Enter incident details for the case (press Enter to stop):");
-                while (true)
-                {
-                    Console.WriteLine("Incident:");
-                    Console.Write("Incident Type: ");
-                    string incidentType = Console.ReadLine();
-
-                    
-                    Incident newIncident = new Incident
-                    {
-                        IncidentType = incidentType
-                    };
-
-                   
-                    newCase.Incidents.Add(newIncident);
-
-                    Console.Write("Add another incident? (Y/N): ");
-                    string response = Console.ReadLine().ToUpper();
-                    if (response != "Y")
-                        break;
-                }
-
-                
-               
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred: {ex.Message}");
-            }
-        }
-
 
 
         public void UpdateCaseDetails()
@@ -279,24 +237,22 @@ namespace CrimeAnalysisAndReportingSystem.service
                     Console.WriteLine("Enter the new Case Description:");
                     string newDescription = Console.ReadLine();
 
-                    // Update the case description in the retrieved case object
                     caseDetails.CaseDescription = newDescription;
 
-                    // Call the service method to update the case details in the database
                     bool isUpdated = _crimeAnalysis.UpdateCaseDetails(caseDetails);
 
                     if (isUpdated)
                     {
-                        Console.WriteLine("Case details updated successfully.");
+                        Console.WriteLine("\nCase details updated successfully.\n");
                     }
                     else
                     {
-                        Console.WriteLine("Failed to update case details.");
+                        Console.WriteLine("\nFailed to update case details.\n");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Case not found.");
+                    Console.WriteLine("\nCase not found.\n");
                 }
             }
             catch (Exception ex)
@@ -314,7 +270,7 @@ namespace CrimeAnalysisAndReportingSystem.service
 
                 if (allCases.Count > 0)
                 {
-                    Console.WriteLine("List of all cases:");
+                    Console.WriteLine("\nList of all cases:");
 
                     foreach (var caseDetails in allCases)
                     {
@@ -332,6 +288,7 @@ namespace CrimeAnalysisAndReportingSystem.service
                             Console.WriteLine($"    Description: {incident.Description}");
                             Console.WriteLine($"    Status: {incident.Status}");
                             Console.WriteLine($"    Agency ID: {incident.AgencyID}");
+                            Console.WriteLine($"    \n");
                         }
 
                         Console.WriteLine("----------------------------------");
@@ -361,7 +318,7 @@ namespace CrimeAnalysisAndReportingSystem.service
                     Console.WriteLine("Associated Incidents:");
                     foreach (var incident in caseDetails.Incidents)
                     {
-                        Console.WriteLine($"  - Incident ID: {incident.IncidentID}\n    Type: {incident.IncidentType}\n    Date: {incident.IncidentDate}\n    Location: {incident.Location}\n    Description: {incident.Description}\n    Status: {incident.Status}\n    Agency ID: {incident.AgencyID}");
+                        Console.WriteLine($" \n\n - Incident ID: {incident.IncidentID}\n    Type: {incident.IncidentType}\n    Date: {incident.IncidentDate}\n    Location: {incident.Location}\n    Description: {incident.Description}\n    Status: {incident.Status}\n    Agency ID: {incident.AgencyID}\n  ----------------------------------------------------------");
                     }
                 }
                 else
@@ -375,38 +332,90 @@ namespace CrimeAnalysisAndReportingSystem.service
             }
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        private int? TryParseNullableInt(string input)
+        public void CreateCase()
         {
-            if (string.IsNullOrWhiteSpace(input))
+            try
             {
-                return null;
-            }
+                Console.WriteLine("Enter the case description:");
+                string caseDescription = Console.ReadLine();
 
-            int result;
-            if (int.TryParse(input, out result))
+                List<Incident> incidents = new List<Incident>();
+                Console.WriteLine("Enter the number of incidents to associate with this case:");
+                if (!int.TryParse(Console.ReadLine(), out int numberOfIncidents))
+                {
+                    Console.WriteLine("Invalid number. Please enter a valid integer.");
+                    return;
+                }
+
+                for (int i = 0; i < numberOfIncidents; i++)
+                {
+                    Console.WriteLine($"\nEntering details for incident {i + 1}:");
+
+                    Console.Write("Incident Type: ");
+                    string incidentType = Console.ReadLine();
+
+                    Console.Write("Incident Date (YYYY-MM-DD): ");
+                    if (!DateTime.TryParse(Console.ReadLine(), out DateTime incidentDate))
+                    {
+                        Console.WriteLine("Invalid date format. Please enter the date in YYYY-MM-DD format.");
+                        return;
+                    }
+
+                    Console.Write("Location (press Enter for null): ");
+                    string location = Console.ReadLine();
+
+                    Console.Write("Description: ");
+                    string description = Console.ReadLine();
+
+                    Console.Write("Status (Open/Closed/Under Investigation): ");
+                    string status = Console.ReadLine();
+
+                    Console.Write("Victim ID (if any, press Enter if not applicable): ");
+                    int? victimID = ReadNullableInt();
+
+                    Console.Write("Suspect ID (if any, press Enter if not applicable): ");
+                    int? suspectID = ReadNullableInt();
+
+                    Console.Write("Agency ID: ");
+                    if (!int.TryParse(Console.ReadLine(), out int agencyID))
+                    {
+                        Console.WriteLine("Invalid input for Agency ID. Please enter a valid integer.");
+                        return;
+                    }
+
+                    Incident incident = new Incident
+                    {
+                        IncidentType = incidentType,
+                        IncidentDate = incidentDate,
+                        Location = string.IsNullOrEmpty(location) ? null : location,
+                        Description = description,
+                        Status = status,
+                        VictimID = victimID,
+                        SuspectID = suspectID,
+                        AgencyID = agencyID
+                    };
+
+                    incidents.Add(incident);
+                }
+
+                Case newCase = _crimeAnalysis.CreateCase(caseDescription, incidents);
+                if (newCase != null)
+                {
+                    Console.WriteLine($"\nCase created successfully with Case ID: {newCase.CaseID}");
+                }
+                else
+                {
+                    Console.WriteLine("\nFailed to create case.");
+                }
+            }
+            catch (Exception ex)
             {
-                return result;
+                Console.WriteLine($"An error occurred: {ex.Message}");
             }
-
-            return null;
         }
 
-
+        
     }
+
 }
+

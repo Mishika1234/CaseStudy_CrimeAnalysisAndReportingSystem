@@ -12,7 +12,7 @@ namespace CrimeAnalysisAndReportingSystem
         {
             ICrimeAnalysisServiceImpl crimeAnalysisServiceImpl = new CrimeAnalysisServiceImpl();
 
-
+            Console.WriteLine("\n------------Crime Analysis and Reporting System----------\n");
 
             while (true)
             {
@@ -27,7 +27,7 @@ namespace CrimeAnalysisAndReportingSystem
                 switch (choice)
                 {
                     case 1:
-                        crimeAnalysisServiceImpl.CreateIncident(new Incident());
+                        crimeAnalysisServiceImpl.CreateIncident();
                         break;
                     case 2:
                         Console.Write("Enter Incident ID: ");
@@ -70,7 +70,7 @@ namespace CrimeAnalysisAndReportingSystem
 
         static void DisplayMenu()
         {
-            Console.WriteLine("Crime Analysis and Reporting System");
+            
             Console.WriteLine("1. Create Incident");
             Console.WriteLine("2. Update Incident Status");
             Console.WriteLine("3. Get Incidents in Date Range");

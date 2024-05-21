@@ -22,72 +22,53 @@ namespace CrimeAnalysisAndReportingSystem.dao
             sqlConnection = new SqlConnection(DbConnUtil.GetConnection());
             cmd = new SqlCommand();
         }
+
         public bool CreateIncident(Incident incident)
         {
             try
             {
-                Console.WriteLine("Enter the details for the new incident:");
-                Console.Write("Case ID (press Enter if not applicable): ");
-                string caseIdInput = Console.ReadLine();
-                int? caseID = string.IsNullOrEmpty(caseIdInput) ? null : (int?)Convert.ToInt32(caseIdInput);
+                using (SqlConnection sqlConnection = new SqlConnection(DbConnUtil.GetConnection()))
+                {
+                    sqlConnection.Open();
 
-                Console.Write("Incident Type: ");
-                string incidentType = Console.ReadLine();
+                    string query = "INSERT INTO Incidents (CaseID, IncidentType, IncidentDate, Location, Description, Status, VictimID, SuspectID, AgencyID) " +
+                                   "VALUES (@CaseID, @IncidentType, @IncidentDate, @Location, @Description, @Status, @VictimID, @SuspectID, @AgencyID)";
 
-                Console.Write("Incident Date (YYYY-MM-DD): ");
-                DateTime incidentDate = DateTime.Parse(Console.ReadLine());
+                    using (SqlCommand cmd = new SqlCommand(query, sqlConnection))
+                    {
+                        cmd.Parameters.AddWithValue("@CaseID", (object)incident.CaseID ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@IncidentType", incident.IncidentType);
+                        cmd.Parameters.AddWithValue("@IncidentDate", incident.IncidentDate);
+                        cmd.Parameters.AddWithValue("@Location", string.IsNullOrEmpty(incident.Location) ? DBNull.Value : (object)incident.Location);
+                        cmd.Parameters.AddWithValue("@Description", incident.Description);
+                        cmd.Parameters.AddWithValue("@Status", incident.Status);
+                        cmd.Parameters.AddWithValue("@VictimID", (object)incident.VictimID ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@SuspectID", (object)incident.SuspectID ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@AgencyID", incident.AgencyID);
 
-                Console.Write("Location: ");
-                string location = Console.ReadLine();
+                        int rowsAffected = cmd.ExecuteNonQuery();
 
-                Console.Write("Description: ");
-                string description = Console.ReadLine();
-
-                Console.Write("Status (Open/Closed/Under Investigation): ");
-                string status = Console.ReadLine();
-
-                Console.Write("Victim ID (if any, press Enter if not applicable): ");
-                string victimIdInput = Console.ReadLine();
-                int? victimID = string.IsNullOrEmpty(victimIdInput) ? null : (int?)Convert.ToInt32(victimIdInput);
-
-                Console.Write("Suspect ID (if any, press Enter if not applicable): ");
-                string suspectIdInput = Console.ReadLine();
-                int? suspectID = string.IsNullOrEmpty(suspectIdInput) ? null : (int?)Convert.ToInt32(suspectIdInput);
-
-                Console.Write("Agency ID: ");
-                int agencyID = Convert.ToInt32(Console.ReadLine());
-
-                sqlConnection.Open();
-                string query = "INSERT INTO Incidents (CaseID, IncidentType, IncidentDate, Location, Description, Status, VictimID, SuspectID, AgencyID) " +
-                               "VALUES (@CaseID, @IncidentType, @IncidentDate, @Location, @Description, @Status, @VictimID, @SuspectID, @AgencyID)";
-
-                cmd.Connection = sqlConnection;
-                cmd.CommandText = query;
-
-                cmd.Parameters.AddWithValue("@CaseID", caseID ?? (object)DBNull.Value); // Assuming CaseID is nullable
-                cmd.Parameters.AddWithValue("@IncidentType", incidentType);
-                cmd.Parameters.AddWithValue("@IncidentDate", incidentDate);
-                cmd.Parameters.AddWithValue("@Location", location ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@Description", description);
-                cmd.Parameters.AddWithValue("@Status", status);
-                cmd.Parameters.AddWithValue("@VictimID", victimID ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@SuspectID", suspectID ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@AgencyID", agencyID);
-
-                cmd.ExecuteNonQuery();
-
-                return true;
+                        return rowsAffected > 0;
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine("SQL Error: " + ex.Message);
+                return false;
+            }
+            catch (FormatException ex)
+            {
+                Console.WriteLine("Input Format Error: " + ex.Message);
+                return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine("Error: " + ex.Message);
                 return false;
             }
-            finally
-            {
-                sqlConnection.Close();
-            }
         }
+
 
 
         public bool UpdateIncidentStatus(int incidentId, string status)
@@ -151,7 +132,8 @@ namespace CrimeAnalysisAndReportingSystem.dao
                 string query = "SELECT * FROM Incidents WHERE IncidentType = @IncidentType";
                 cmd.Connection = sqlConnection;
                 cmd.CommandText = query;
-               
+                cmd.Parameters.Clear();
+
                 cmd.Parameters.AddWithValue("@IncidentType", incidentType);
 
                 SqlDataReader reader = cmd.ExecuteReader();
@@ -160,6 +142,7 @@ namespace CrimeAnalysisAndReportingSystem.dao
                     incidents.Add(new Incident
                     {
                         IncidentID = Convert.ToInt32(reader["IncidentID"]),
+                        CaseID = Convert.ToInt32(reader["CaseID"]),
                         IncidentType = reader["IncidentType"].ToString(),
                         IncidentDate = Convert.ToDateTime(reader["IncidentDate"]),
                         Location = reader["Location"] != DBNull.Value ? reader["Location"].ToString() : null,
@@ -191,6 +174,7 @@ namespace CrimeAnalysisAndReportingSystem.dao
                 string query = "SELECT * FROM Incidents WHERE IncidentDate BETWEEN @StartDate AND @EndDate";
                 cmd.Connection = sqlConnection;
                 cmd.CommandText = query;
+                cmd.Parameters.Clear();
 
                 cmd.Parameters.AddWithValue("@StartDate", startDate);
                 cmd.Parameters.AddWithValue("@EndDate", endDate);
@@ -224,47 +208,47 @@ namespace CrimeAnalysisAndReportingSystem.dao
             return incidents;
         }
 
-        public Case CreateCase(string caseDescription, ICollection<Incident> incidents)
+        public Case CreateCase(string caseDescription, List<Incident> incidents)
         {
             try
             {
-                sqlConnection.Open();
-
-                
-                string insertCaseQuery = "INSERT INTO Cases (CaseDescription) VALUES (@CaseDescription); SELECT SCOPE_IDENTITY();";
-                cmd.Connection = sqlConnection;
-                cmd.CommandText = insertCaseQuery;
-                cmd.Parameters.AddWithValue("@CaseDescription", caseDescription);
-                int caseId = Convert.ToInt32(cmd.ExecuteScalar());
-
-               
-                if (incidents != null && incidents.Any())
+                using (SqlConnection sqlConnection = new SqlConnection(DbConnUtil.GetConnection()))
                 {
-                    foreach (var incident in incidents)
+                    sqlConnection.Open();
+
+                    // Insert the new case into the Cases table
+                    string insertCaseQuery = "INSERT INTO Cases (CaseDescription) VALUES (@CaseDescription); SELECT SCOPE_IDENTITY();";
+                    SqlCommand cmd = new SqlCommand(insertCaseQuery, sqlConnection);
+                    cmd.Parameters.AddWithValue("@CaseDescription", caseDescription);
+                    int caseID = Convert.ToInt32(cmd.ExecuteScalar());
+
+                    // Associate the case with the specified incidents
+                    foreach (Incident incident in incidents)
                     {
-                       
-                        incident.CaseID = caseId;
+                        string updateIncidentQuery = "UPDATE Incidents SET CaseID = @CaseID WHERE IncidentID = @IncidentID";
+                        SqlCommand updateCmd = new SqlCommand(updateIncidentQuery, sqlConnection);
+                        updateCmd.Parameters.AddWithValue("@CaseID", caseID);
+                        updateCmd.Parameters.AddWithValue("@IncidentID", incident.IncidentID);
+                        updateCmd.ExecuteNonQuery();
                     }
-                }
 
-              
-                return new Case
-                {
-                    CaseID = caseId,
-                    CaseDescription = caseDescription,
-                };
+                    // Create and return the Case object
+                    Case newCase = new Case
+                    {
+                        CaseID = caseID,
+                        CaseDescription = caseDescription,
+                        Incidents = incidents
+                    };
+
+                    return newCase;
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error creating case: " + ex.Message);
+                Console.WriteLine($"An error occurred while creating the case: {ex.Message}");
                 return null;
             }
-            finally
-            {
-                sqlConnection.Close();
-            }
         }
-
 
 
 
@@ -282,6 +266,7 @@ namespace CrimeAnalysisAndReportingSystem.dao
 
                 cmd.Connection = sqlConnection;
                 cmd.CommandText = query;
+                cmd.Parameters.Clear();
                 cmd.Parameters.AddWithValue("@CaseIdParam", caseId);
 
                 SqlDataReader reader = cmd.ExecuteReader();
@@ -343,7 +328,8 @@ namespace CrimeAnalysisAndReportingSystem.dao
                
                 cmd.Parameters.Clear();
 
-                cmd.Parameters.AddWithValue("@CaseDescriptionParam", caseToUpdate.CaseDescription); // Updated parameter name
+                cmd.Parameters.AddWithValue("@CaseDescriptionParam", caseToUpdate.CaseDescription); 
+                // Updated parameter name
                 cmd.Parameters.AddWithValue("@CaseIdParam", caseToUpdate.CaseID); 
 
                 int rowsAffected = cmd.ExecuteNonQuery();
@@ -429,15 +415,86 @@ namespace CrimeAnalysisAndReportingSystem.dao
 
 
 
-        public int GenerateReportId()
+
+
+        public string GenerateIncidentReport(int incidentId)
         {
-        Random random = new Random();
-        return random.Next(1, 1000);
+            string report = string.Empty;
+
+            try
+            {
+                sqlConnection.Open();
+
+                string query = @"
+                    SELECT 
+                        Incidents.IncidentID,
+                        Incidents.IncidentType,
+                        Incidents.IncidentDate,
+                        Incidents.Description,
+                        Incidents.Status,
+                        Reports.ReportingOfficer,
+                        Officers.FirstName,
+                        Officers.LastName,
+                        Cases.CaseDescription
+                    FROM 
+                        Incidents
+                    JOIN 
+                        Reports ON Incidents.IncidentID = Reports.IncidentID
+                    JOIN 
+                        Officers ON Reports.ReportingOfficer = Officers.OfficerID
+                    JOIN 
+                        Cases ON Incidents.CaseID = Cases.CaseID
+                    WHERE
+                        Incidents.IncidentID = @IncidentId";
+
+                cmd.Connection = sqlConnection;
+                cmd.CommandText = query;
+                cmd.Parameters.AddWithValue("@IncidentId", incidentId);
+
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.HasRows && reader.Read())
+                    {
+                        string incidentType = reader.GetString(1);
+                        DateTime incidentDate = reader.GetDateTime(2);
+                        string description = reader.GetString(3);
+                        string status = reader.GetString(4);
+                        int reportingOfficerId = reader.GetInt32(5);
+                        string officerFirstName = reader.GetString(6);
+                        string officerLastName = reader.GetString(7);
+                        string caseDescription = reader.GetString(8);
+
+                        report = $"\n" +
+                                 $"Incident ID: {incidentId}\n" +
+                                 $"Incident Type: {incidentType}\n" +
+                                 $"Incident Date: {incidentDate}\n" +
+                                 $"Description: {description}\n" +
+                                 $"Status: {status}\n" +
+                                 $"Reporting Officer ID: {reportingOfficerId}\n" +
+                                 $"Reporting Officer Name: {officerFirstName} {officerLastName}\n" +
+                                 $"Associated Case Description: {caseDescription}\n" +
+                                 "----------------------------------";
+                    }
+                    else
+                    {
+                        report = $"No incident found with ID {incidentId}.";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                report = $"An error occurred: {ex.Message}";
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+
+            return report;
         }
 
-        Report ICrimeAnalysisService.GenerateIncidentReport(Incident incident)
-        {
-            throw new NotImplementedException();
-        }
+       
+
     }
 }
+    

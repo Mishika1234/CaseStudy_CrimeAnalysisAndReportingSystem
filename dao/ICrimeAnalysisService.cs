@@ -22,10 +22,11 @@ namespace CrimeAnalysisAndReportingSystem.dao
         ICollection<Incident> SearchIncidents(string IncidentType );
 
         // Generate incident reports
-        Report GenerateIncidentReport(Incident incident);
+        public string GenerateIncidentReport(int incidentId);
+
 
         // Create a new case and associate it with incidents
-       Case CreateCase(string caseDescription, ICollection<Incident> incidents);
+        Case CreateCase(string caseDescription, List<Incident> incidents);
 
         // Get details of a specific case
         Case GetCaseDetails(int caseId);
